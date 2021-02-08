@@ -6,7 +6,9 @@ public interface Zeroconf {
 
     void scan(String type, String protocol, String domain);
 
-    void stop();
+    void stop(String type);
+
+    void stopAll();
 
     public void unregisterService(String serviceName);
 

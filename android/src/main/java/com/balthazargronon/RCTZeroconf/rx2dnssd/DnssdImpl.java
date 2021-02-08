@@ -53,7 +53,7 @@ public class DnssdImpl implements Zeroconf {
 
     @Override
     public void scan(String type, String protocol, String domain) {
-        this.stop();
+        this.stop(type);
 
         if (multicastLock == null) {
             @SuppressLint("WifiManagerLeak") WifiManager wifi = (WifiManager) reactApplicationContext.getSystemService(Context.WIFI_SERVICE);
@@ -115,7 +115,20 @@ public class DnssdImpl implements Zeroconf {
     }
 
     @Override
-    public void stop() {
+    public void stop(String type) {
+        if (browseDisposable != null) {
+            browseDisposable.dispose();
+            zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_STOP, null);
+        }
+        if (multicastLock != null) {
+            multicastLock.release();
+        }
+        browseDisposable = null;
+        multicastLock = null;
+    }
+
+    @Override
+    public void stopAll() {
         if (browseDisposable != null) {
             browseDisposable.dispose();
             zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_STOP, null);

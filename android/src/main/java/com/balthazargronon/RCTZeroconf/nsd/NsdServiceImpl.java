@@ -26,9 +26,9 @@ import java.util.Map;
 
 public class NsdServiceImpl implements Zeroconf {
     private NsdManager mNsdManager;
-    private NsdManager.DiscoveryListener mDiscoveryListener;
     private WifiManager.MulticastLock multicastLock;
     private Map<String, NsdManager.RegistrationListener> mPublishedServices;
+    private Map<String, NsdManager.DiscoveryListener> mDiscoveryListeners;
     private ZeroconfModule zeroconfModule;
     private ReactApplicationContext reactApplicationContext;
 
@@ -36,6 +36,7 @@ public class NsdServiceImpl implements Zeroconf {
         this.zeroconfModule = zeroconfModule;
         this.reactApplicationContext = reactApplicationContext;
         mPublishedServices = new HashMap<String, NsdManager.RegistrationListener>();
+        mDiscoveryListeners = new HashMap<String, NsdManager.DiscoveryListener>();
     }
 
     @Override
@@ -44,16 +45,17 @@ public class NsdServiceImpl implements Zeroconf {
             mNsdManager = (NsdManager) getReactApplicationContext().getSystemService(Context.NSD_SERVICE);
         }
 
-        this.stop();
+        this.stop(type);
 
         if (multicastLock == null) {
             @SuppressLint("WifiManagerLeak") WifiManager wifi = (WifiManager) getReactApplicationContext().getSystemService(Context.WIFI_SERVICE);
             multicastLock = wifi.createMulticastLock("multicastLock");
             multicastLock.setReferenceCounted(true);
             multicastLock.acquire();
+            System.out.println("multicastLock acquire");
         }
 
-        mDiscoveryListener = new NsdManager.DiscoveryListener() {
+        NsdManager.DiscoveryListener mDiscoveryListener = new NsdManager.DiscoveryListener() {
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
                 String error = "Starting service discovery failed with code: " + errorCode;
@@ -99,20 +101,36 @@ public class NsdServiceImpl implements Zeroconf {
 
         String serviceType = String.format("_%s._%s.", type, protocol);
         mNsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        mDiscoveryListeners.put(type, mDiscoveryListener);
     }
 
     @Override
-    public void stop() {
-        System.out.println("I'm Cumming again"+mDiscoveryListener);
+    public void stop(String type) {
+        NsdManager.DiscoveryListener mDiscoveryListener = mDiscoveryListeners.get(type);
         if (mDiscoveryListener != null) {
+            System.out.println("stop "+type);
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+            mDiscoveryListeners.remove(type);
         }
+        if (mDiscoveryListeners.size() == 0 && multicastLock != null) {
+            multicastLock.release();
+            multicastLock = null;
+            System.out.println("multicastLock release");
+        }
+    }
+
+    @Override
+    public void stopAll() {
+        for (Map.Entry<String,NsdManager.DiscoveryListener> entry : mDiscoveryListeners.entrySet()) {
+            mNsdManager.stopServiceDiscovery(entry.getValue());
+            System.out.println("stop "+entry.getKey());
+        }  
+        mDiscoveryListeners.clear();
         if (multicastLock != null) {
             multicastLock.release();
+            multicastLock = null;
+            System.out.println("multicastLock release");
         }
-        System.out.println("I'm Came again"+multicastLock);
-        mDiscoveryListener = null;
-        multicastLock = null;
     }
 
     @Override

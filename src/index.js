@@ -129,11 +129,11 @@ export default class Zeroconf extends EventEmitter {
   /**
    * Stop current scan if any
    */
-  stop(implType = ImplType.NSD) {
+  stop(type = 'http', implType = ImplType.NSD) {
     if (Platform.OS === 'android') {
-      RNZeroconf.stop(implType)
+      RNZeroconf.stop(type, implType)
     } else {
-      RNZeroconf.stop()
+      RNZeroconf.stop(type)
     }
   }
 
