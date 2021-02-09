@@ -117,7 +117,7 @@ export default class Zeroconf extends EventEmitter {
    * Defaults to _http._tcp. on local domain
    */
   scan(type = 'http', protocol = 'tcp', domain = 'local.', implType = ImplType.NSD) {
-    this._services = {}
+    this._services = filterObject(this._services, service => service.type !== type)
     this.emit('update')
     if (Platform.OS === 'android') {
       RNZeroconf.scan(type, protocol, domain, implType)
@@ -162,3 +162,8 @@ export default class Zeroconf extends EventEmitter {
     }
   }
 }
+
+const filterObject = (obj, predicate) =>
+  Object.keys(obj)
+    .filter(key => predicate(obj[key]))
+    .reduce((res, key) => ((res[key] = obj[key]), res), {})
