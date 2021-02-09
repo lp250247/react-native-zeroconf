@@ -33,7 +33,7 @@ public class DnssdImpl implements Zeroconf {
     private Rx2Dnssd rxDnssd;
 
     @Nullable
-    private Disposable browseDisposable;
+    private Map<String, Disposable> browseDisposables;
 
     private Map<String, BonjourService> mPublishedServices;
     private Map<String, Disposable> mRegisteredDisposables;
@@ -48,12 +48,13 @@ public class DnssdImpl implements Zeroconf {
         this.reactApplicationContext = reactApplicationContext;
         mPublishedServices = new HashMap<String, BonjourService>();
         mRegisteredDisposables = new HashMap<String, Disposable>();
+        browseDisposables = new HashMap<String, Disposable>();
         rxDnssd = new Rx2DnssdBindable(reactApplicationContext);
     }
 
     @Override
     public void scan(String type, String protocol, String domain) {
-        this.stop();
+        this.stop(type);
 
         if (multicastLock == null) {
             @SuppressLint("WifiManagerLeak") WifiManager wifi = (WifiManager) reactApplicationContext.getSystemService(Context.WIFI_SERVICE);
@@ -62,19 +63,21 @@ public class DnssdImpl implements Zeroconf {
             multicastLock.acquire();
         }
 
-        browseDisposable = rxDnssd.browse(getServiceType(type, protocol), "local.")
+        Disposable browseDisposable = rxDnssd.browse(getServiceType(type, protocol), "local.")
                 .compose(rxDnssd.resolve())
                 .compose(rxDnssd.queryRecords())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bonjourService -> {
                     WritableMap service = serviceInfoToMap(bonjourService);
+                    service.putString(ZeroconfModule.KEY_SERVICE_TYPE, type);
                     Log.d(getClass().getName(), service.toString());
                     zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_RESOLVE, service);
                 }, throwable -> {
                     Log.e(getClass().getName(), "Error resolving service: ", throwable);
                     zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_ERROR, throwable.getMessage());
                 });
+        browseDisposables.put(type, browseDisposable);
     }
 
     private String getServiceType(String type, String protocol) {
@@ -115,16 +118,30 @@ public class DnssdImpl implements Zeroconf {
     }
 
     @Override
-    public void stop() {
+    public void stop(String type) {
+        Disposable browseDisposable = browseDisposables.get(type);
         if (browseDisposable != null) {
             browseDisposable.dispose();
             zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_STOP, null);
+            browseDisposables.remove(type);
         }
+        if (browseDisposables.size() == 0 && multicastLock != null) {
+            multicastLock.release();
+            multicastLock = null;
+        }
+    }
+
+    @Override
+    public void stopAll() {
+        for (Map.Entry<String,Disposable> entry : browseDisposables.entrySet()) {
+            entry.getValue().dispose();
+            zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_STOP, null);
+        }  
+        browseDisposables.clear();
         if (multicastLock != null) {
             multicastLock.release();
+            multicastLock = null;
         }
-        browseDisposable = null;
-        multicastLock = null;
     }
 
     @Override

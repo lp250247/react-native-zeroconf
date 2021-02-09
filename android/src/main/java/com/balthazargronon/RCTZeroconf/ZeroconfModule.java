@@ -29,6 +29,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     public static final String EVENT_PUBLISHED = "RNZeroconfServiceRegistered";
     public static final String EVENT_UNREGISTERED = "RNZeroconfServiceUnregistered";
 
+    public static final String KEY_SERVICE_TYPE = "type";
     public static final String KEY_SERVICE_NAME = "name";
     public static final String KEY_SERVICE_FULL_NAME = "fullName";
     public static final String KEY_SERVICE_HOST = "host";
@@ -59,9 +60,9 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void stop(String implType) {
+    public void stop(String type, String implType) {
         try {
-            getZeroconfImpl(implType).stop();
+            getZeroconfImpl(implType).stop(type);
         } catch (Exception e) {
             Log.e(getClass().getName(), e.getMessage(), e);
             sendEvent(getReactApplicationContext(), ZeroconfModule.EVENT_ERROR, "Exception During Stop: " + e.getMessage());
@@ -104,8 +105,8 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     public void onCatalystInstanceDestroy() {
         super.onCatalystInstanceDestroy();
         try {
-            stop(ZeroConfImplFactory.NSD_IMPL);
-            stop(ZeroConfImplFactory.DNSSD_IMPL);
+            getZeroconfImpl(ZeroConfImplFactory.NSD_IMPL).stopAll();
+            getZeroconfImpl(ZeroConfImplFactory.DNSSD_IMPL).stopAll();
         } catch (Exception e) {
             Log.e(getClass().getName(), e.getMessage(), e);
             sendEvent(getReactApplicationContext(), ZeroconfModule.EVENT_ERROR, "Exception During Catalyst Destroy: " + e.getMessage());
