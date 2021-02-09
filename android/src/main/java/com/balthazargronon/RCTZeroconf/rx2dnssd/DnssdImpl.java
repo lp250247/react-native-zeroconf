@@ -70,6 +70,7 @@ public class DnssdImpl implements Zeroconf {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bonjourService -> {
                     WritableMap service = serviceInfoToMap(bonjourService);
+                    service.putString(ZeroconfModule.KEY_SERVICE_TYPE, type);
                     Log.d(getClass().getName(), service.toString());
                     zeroconfModule.sendEvent(reactApplicationContext, ZeroconfModule.EVENT_RESOLVE, service);
                 }, throwable -> {

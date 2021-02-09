@@ -56,6 +56,8 @@ public class NsdServiceImpl implements Zeroconf {
         }
 
         NsdManager.DiscoveryListener mDiscoveryListener = new NsdManager.DiscoveryListener() {
+            String serviceType = type;
+
             @Override
             public void onStartDiscoveryFailed(String serviceType, int errorCode) {
                 String error = "Starting service discovery failed with code: " + errorCode;
@@ -84,10 +86,11 @@ public class NsdServiceImpl implements Zeroconf {
             public void onServiceFound(NsdServiceInfo serviceInfo) {
                 System.out.println("On Service Found");
                 WritableMap service = new WritableNativeMap();
+                service.putString(ZeroconfModule.KEY_SERVICE_TYPE, serviceType);
                 service.putString(ZeroconfModule.KEY_SERVICE_NAME, serviceInfo.getServiceName());
 
                 zeroconfModule.sendEvent(getReactApplicationContext(), ZeroconfModule.EVENT_FOUND, service);
-                mNsdManager.resolveService(serviceInfo, new NsdServiceImpl.ZeroResolveListener());
+                mNsdManager.resolveService(serviceInfo, new NsdServiceImpl.ZeroResolveListener(serviceType));
             }
 
             @Override
@@ -178,6 +181,13 @@ public class NsdServiceImpl implements Zeroconf {
     }
 
     private class ZeroResolveListener implements NsdManager.ResolveListener {
+        String type;
+
+        ZeroResolveListener(String serviceType) {
+            super();
+            type = serviceType;
+        }
+
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
             if (errorCode == NsdManager.FAILURE_ALREADY_ACTIVE) {
@@ -191,6 +201,8 @@ public class NsdServiceImpl implements Zeroconf {
         @Override
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
             WritableMap service = serviceInfoToMap(serviceInfo);
+            service.putString(ZeroconfModule.KEY_SERVICE_TYPE, type);
+            
             zeroconfModule.sendEvent(getReactApplicationContext(), ZeroconfModule.EVENT_RESOLVE, service);
         }
     }

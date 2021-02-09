@@ -24,6 +24,7 @@ export declare const ImplType: IImplType
  *      "fe80::aebc:123:ffff:abcd"
  *    ],
  *    "name": "Xerox Printer",
+ *    "type": "service-type" // same as type parameter from scan function
  *    "fullName": "XeroxPrinter.local._http._tcp.",
  *    "port": 8080,
  *    "txt": {}
@@ -32,6 +33,7 @@ export declare const ImplType: IImplType
  */
 export interface Service {
   name: string
+  type: string
   fullName: string
   addresses: string[]
   host: string

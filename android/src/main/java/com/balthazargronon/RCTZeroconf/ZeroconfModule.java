@@ -29,6 +29,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     public static final String EVENT_PUBLISHED = "RNZeroconfServiceRegistered";
     public static final String EVENT_UNREGISTERED = "RNZeroconfServiceUnregistered";
 
+    public static final String KEY_SERVICE_TYPE = "type";
     public static final String KEY_SERVICE_NAME = "name";
     public static final String KEY_SERVICE_FULL_NAME = "fullName";
     public static final String KEY_SERVICE_HOST = "host";
