@@ -12,7 +12,7 @@ interface IImplType {
   DNSSD: 'DNSSD'
 }
 
-declare const ImplType: IImplType
+export declare const ImplType: IImplType
 
 /**
  * @example
@@ -46,7 +46,8 @@ export default class Zeroconf extends EventEmitter {
    * Start the zeroconf scan.
    *
    * @description This will initialize the scan from the `Zeroconf`
-   * instance. Will stop another scan if any is running.
+   * instance. Will stop scan with same type and implType if any is running.
+   * Run in parallel when called multiple times with different types.
    *
    * @param type Default `http`
    * @param protocol Default `tcp`
@@ -58,9 +59,12 @@ export default class Zeroconf extends EventEmitter {
   /**
    * Stop the scan.
    *
-   * @description If any scan is running, stop it. Otherwise do nothing.
+   * @description If scan is running, stop it. Otherwise do nothing.
+   *
+   * @param type Default `http`
+   * @param protocol Default `ImplType.NSD`
    */
-  stop(): void
+  stop(type?: string, implType?: ImplType): void
 
   /**
    * Returns resolved services.
